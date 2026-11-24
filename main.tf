@@ -4,6 +4,7 @@ resource "aws_vpc" "primary_vpc" {
 }
 
 resource "aws_subnet" "primary_vpc_subnet" {
+    provider = aws.primary_region_provider
     vpc_id = aws_vpc.primary_vpc.id
     cidr_block = "10.0.1.0/24"
     map_public_ip_on_launch = true
@@ -19,7 +20,8 @@ resource "aws_instance" "primary_ec2_instance" {
     instance_type = var.ec2_instance_type
     subnet_id = aws_subnet.primary_vpc_subnet.id
     vpc_security_group_ids = [aws_security_group.primary_vpc_security_group.id]
-    
+    key_name = aws_key_pair.primary_key.key_name
+
     user_data = <<-EOF
             #!/bin/bash
             apt update && apt upgrade
@@ -129,6 +131,7 @@ resource "aws_vpc" "secondary_vpc" {
 }
 
 resource "aws_subnet" "secondary_vpc_subnet" {
+    provider = aws.secondary_region_provider
     vpc_id = aws_vpc.secondary_vpc.id 
     cidr_block = "10.1.1.0/24"
     map_public_ip_on_launch = true
@@ -144,6 +147,7 @@ resource "aws_instance" "secondary_instance" {
     instance_type = var.ec2_instance_type
     subnet_id = aws_subnet.secondary_vpc_subnet.id
     vpc_security_group_ids = [aws_security_group.secondary_vpc_security_group.id]
+    key_name = aws_key_pair.secondary_key.key_name
 
     user_data = <<-EOF
             #!/bin/bash
@@ -260,4 +264,17 @@ resource "aws_vpc_peering_connection_accepter" "accepter" {
     vpc_peering_connection_id = aws_vpc_peering_connection.peering_connection.id
     auto_accept = true
   
+}
+
+
+resource "aws_key_pair" "primary_key" {
+    provider = aws.primary_region_provider
+    key_name = "lab-primary-key"
+    public_key = file("~/.ssh/aws_lab_ed25519.pub")
+}
+
+resource "aws_key_pair" "secondary_key" {
+    provider = aws.secondary_region_provider
+    key_name = "lab-secondary-key"
+    public_key = file("~/.ssh/aws_lab_ed25519.pub")
 }
