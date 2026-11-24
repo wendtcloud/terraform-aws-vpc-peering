@@ -74,6 +74,22 @@ resource "aws_vpc_security_group_egress_rule" "primary_all_out" {
     cidr_ipv4 = "0.0.0.0/0"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "allow_ssh_from_admin_primary" {
+    security_group_id = aws_security_group.primary_vpc_security_group.id
+    cidr_ipv4 = var.admin_cidr
+    from_port = 22
+    to_port = 22
+    ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_http_primary" {
+    security_group_id = aws_security_group.primary_vpc_security_group.id
+    cidr_ipv4 = "0.0.0.0/0"
+    from_port = 80
+    to_port = 80
+    ip_protocol = "tcp"
+}
+
 resource "aws_route_table" "primary_vpc_route_table" {
     vpc_id = aws_vpc.primary_vpc.id
     provider = aws.primary_region_provider
@@ -88,10 +104,22 @@ resource "aws_route" "primary_to_secondary" {
     depends_on = [ aws_vpc_peering_connection_accepter.accepter ]
 }
 
+resource "aws_route" "primary_default_internet" {
+    provider = aws.primary_region_provider
+    route_table_id = aws_route_table.primary_vpc_route_table.id
+    destination_cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.primary_vpc_igw.id
+}
+
 resource "aws_route_table_association" "primary_association" {
     provider = aws.primary_region_provider
     subnet_id = aws_subnet.primary_vpc_subnet.id
     route_table_id = aws_route_table.primary_vpc_route_table.id
+}
+
+resource "aws_internet_gateway" "primary_vpc_igw" {
+    provider = aws.primary_region_provider
+    vpc_id = aws_vpc.primary_vpc.id
 }
 
 
@@ -171,6 +199,22 @@ resource "aws_vpc_security_group_egress_rule" "secondary_all_out" {
     cidr_ipv4 = "0.0.0.0/0"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "allow_ssh_from_admin_secondary" {
+    security_group_id = aws_security_group.secondary_vpc_security_group.id
+    cidr_ipv4 = var.admin_cidr
+    from_port = 22
+    to_port = 22
+    ip_protocol = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_http_secondary" {
+    security_group_id = aws_security_group.secondary_vpc_security_group.id
+    cidr_ipv4 = "0.0.0.0/0"
+    from_port = 80
+    to_port = 80
+    ip_protocol = "tcp"
+}
+
 resource "aws_route_table" "secondary_vpc_route_table" {
     vpc_id = aws_vpc.secondary_vpc.id
     provider = aws.secondary_region_provider
@@ -185,12 +229,24 @@ resource "aws_route" "secondary_to_primary" {
     depends_on = [ aws_vpc_peering_connection_accepter.accepter ]
 }
 
+resource "aws_internet_gateway" "secondary_vpc_igw" {
+    vpc_id = aws_vpc.secondary_vpc.id
+    provider = aws.secondary_region_provider
+}
 
 resource "aws_route_table_association" "secondary_association" {
     provider = aws.secondary_region_provider
     subnet_id = aws_subnet.secondary_vpc_subnet.id
     route_table_id = aws_route_table.secondary_vpc_route_table.id
 }
+
+resource "aws_route" "secondary_default_internet" {
+    provider = aws.secondary_region_provider
+    route_table_id = aws_route_table.secondary_vpc_route_table.id
+    destination_cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.secondary_vpc_igw.id
+}
+
 
 resource "aws_vpc_peering_connection" "peering_connection" {
     provider = aws.primary_region_provider

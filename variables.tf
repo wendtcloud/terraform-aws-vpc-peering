@@ -10,6 +10,10 @@ variable "aws_secondary_region" {
 
 variable "ec2_instance_type" {
     type = string
-    default = "t2.micro"
-  
+    default = "t2.micro" 
+}
+
+variable "admin_cidr" {
+    type = string
+    sensitive = true
 }
