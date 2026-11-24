@@ -14,6 +14,29 @@ resource "aws_subnet" "primary_vpc_subnet" {
     }
 }
 
+resource "aws_instance" "primary_ec2_instance" {
+    ami = data.aws_ami.ubuntu_24_04.id
+    instance_type = var.ec2_instance_type
+    subnet_id = aws_subnet.primary_vpc_subnet.id
+    
+    user_data = <<-EOF
+            #!/bin/bash
+            apt update && apt upgrade
+            apt install -y apache2
+
+            cat >> /var/www/html/index.html <<HTML
+            <h1> Hello from ${var.aws_primary_region} </h1>
+            <p> I run on: ${var.ec2_instance_type} </p>
+            HTML
+
+            systemctl restart apache2
+            EOF
+
+    tags = {
+        Name = "primary-ec2-instance"
+    }
+}
+
 
 resource "aws_vpc" "secondary_vpc" {
     cidr_block = "10.1.0.0/16" 
@@ -27,5 +50,28 @@ resource "aws_subnet" "secondary_vpc_subnet" {
 
     tags = {
         Name = "secondary-vpc-subnet"
+    }
+}
+
+resource "aws_instance" "secondary_instance" {
+    ami = data.aws_ami.ubuntu_24_04.id
+    instance_type = var.ec2_instance_type
+    subnet_id = aws_subnet.secondary_vpc_subnet.id
+
+    user_data = <<-EOF
+            #!/bin/bash
+            apt update && apt upgrade
+            apt install -y apache2
+
+            cat >> /var/www/html/index.html <<HTML
+            <h1> Hello from ${var.aws_secondary_region} </h1>
+            <p> I run on: ${var.ec2_instance_type} </p>
+            HTML
+
+            systemctl restart apache2
+            EOF
+
+    tags = {
+        Name = "secondary-ec2-instance"
     }
 }
