@@ -2,7 +2,40 @@
 
 This project provisions two VPCs in two AWS regions, connects them with a VPC peering connection, and launches an Ubuntu EC2 instance running Apache in each.
 
-![Architecture Diagram](diagram.png)
+```mermaid
+flowchart LR
+    Internet((Internet))
+    Admin["Admin / Browser<br/>SSH :22 (admin_cidr) / HTTP :80"]
+
+    subgraph Primary["Primary Region - VPC 10.0.0.0/16"]
+        direction TB
+        IGW1["Internet Gateway<br/>0.0.0.0/0"]
+        subgraph Sub1["Subnet 10.0.1.0/24"]
+            EC2_1["EC2 Ubuntu 24.04<br/>Apache (:80) & SSH (:22)"]
+            SG1["Security Group<br/>SSH (VPC + admin), HTTP (0.0.0.0/0),<br/>ICMP & TCP (10.1.0.0/16)"]
+        end
+    end
+
+    subgraph Secondary["Secondary Region - VPC 10.1.0.0/16"]
+        direction TB
+        IGW2["Internet Gateway<br/>0.0.0.0/0"]
+        subgraph Sub2["Subnet 10.1.1.0/24"]
+            EC2_2["EC2 Ubuntu 24.04<br/>Apache (:80) & SSH (:22)"]
+            SG2["Security Group<br/>SSH (VPC + admin), HTTP (0.0.0.0/0),<br/>ICMP & TCP (10.0.0.0/16)"]
+        end
+    end
+
+    Admin -->|":22 / :80"| IGW1
+    Admin -->|":22 / :80"| IGW2
+    IGW1 <--> Sub1
+    IGW2 <--> Sub2
+    Sub1 <-->|"Outbound / apt"| Internet
+    Sub2 <-->|"Outbound / apt"| Internet
+
+    EC2_1 <-->|"VPC Peering<br/>10.0.0.0/16 <-> 10.1.0.0/16"| EC2_2
+    EC2_1 --- SG1
+    EC2_2 --- SG2
+```
 
 ## What Was Built
 
