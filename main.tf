@@ -1,4 +1,3 @@
-
 resource "aws_vpc" "primary_vpc" {
     cidr_block = "10.0.0.0/16"
     provider = aws.primary_region_provider
@@ -35,6 +34,19 @@ resource "aws_instance" "primary_ec2_instance" {
     tags = {
         Name = "primary-ec2-instance"
     }
+}
+
+resource "aws_security_group" "primary_vpc_security_group" {
+    vpc_id = aws_vpc.primary_vpc.id
+    description = "Primary VPC Security Group"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_ingress_ssh_primary_vpc" {
+    security_group_id = aws_security_group.primary_vpc_security_group.id
+    cidr_ipv4 = aws_vpc.primary_vpc.cidr_block
+    from_port = 22
+    to_port = 22
+    ip_protocol = "ssh"
 }
 
 
@@ -74,4 +86,17 @@ resource "aws_instance" "secondary_instance" {
     tags = {
         Name = "secondary-ec2-instance"
     }
+}
+
+resource "aws_security_group" "secondary_vpc_security_group" {
+    vpc_id = aws_vpc.secondary_vpc.id
+    description = "Secondary VPC Security Group"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_ingress_ssh_secondary_vpc" {
+    security_group_id = aws_security_group.secondary_vpc_security_group.id
+    cidr_ipv4 = aws_vpc.secondary_vpc.cidr_block
+    from_port = 22
+    to_port = 22
+    ip_protocol = "ssh"
 }
